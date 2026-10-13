@@ -138,7 +138,7 @@ async function loadHistory() {
     }
     data.messages.forEach(m => addMessage(m.role, m.text, m.file_name));
   } catch (e) {
-    addMessage("model", "⚠️ Не удалось связаться с сервером. Проверь, что туннель и сервер запущены.");
+    addMessage("model", "⚠️ Не удалось связаться с сервером: " + e.message);
   }
 }
 
@@ -163,14 +163,16 @@ async function send() {
       headers: { "X-Init-Data": tg.initData },
       body: fd,
     });
-    const data = await r.json();
-    if (r.ok) {
+    const raw = await r.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) {}
+    if (r.ok && data.answer) {
       render(thinking, "model", data.answer);
     } else {
-      thinking.textContent = "⚠️ " + (data.detail || "Ошибка");
+      thinking.textContent = "⚠️ Ошибка " + r.status + ": " + (data.detail || raw.slice(0, 200));
     }
   } catch (e) {
-    thinking.textContent = "⚠️ Не удалось связаться с сервером.";
+    thinking.textContent = "⚠️ Не удалось связаться с сервером: " + e.message;
   }
   sendBtn.disabled = false;
   chat.scrollTop = chat.scrollHeight;
