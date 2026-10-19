@@ -842,7 +842,7 @@ async function init() {
 }
 
 /* ===== Заставка ===== */
-const SPLASH_MIN_MS = 1500; // сколько миллисекунд заставка показывается минимум
+const SPLASH_MIN_MS = 2200; // сколько миллисекунд заставка показывается минимум
 const splashStart = performance.now();
 
 function hideSplash() {
