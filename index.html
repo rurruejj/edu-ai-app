@@ -1,529 +1,104 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>EDU AI</title>
+<link rel="stylesheet" href="styles.css?v=1">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<style>
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    display: flex; flex-direction: column;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #000000);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 16px;
-  }
-  .hidden { display: none !important; }
-  .muted { opacity: 0.65; font-size: 13px; }
-
-  header {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 10px;
-    background: var(--tg-theme-secondary-bg-color, #f1f1f1);
-  }
-  .title { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .icon {
-    background: none; border: none; cursor: pointer; padding: 6px 8px; font-size: 20px;
-    color: var(--tg-theme-text-color, #000000);
-  }
-
-  #chat { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-  .msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; line-height: 1.4; word-wrap: break-word; overflow-wrap: anywhere; }
-  .msg.user { align-self: flex-end; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); white-space: pre-wrap; }
-  .msg.bot { align-self: flex-start; background: var(--tg-theme-secondary-bg-color, #f1f1f1); }
-  .msg.bot p { margin: 0 0 8px; }
-  .msg.bot p:last-child { margin-bottom: 0; }
-  .msg.bot pre { overflow-x: auto; }
-  .file { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
-
-  #filebar { display: none; padding: 6px 16px; font-size: 14px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); }
-  #filebar button { border: none; background: none; cursor: pointer; font-size: 16px; color: inherit; }
-  footer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
-  #input {
-    flex: 1; resize: none; max-height: 120px; padding: 10px 12px;
-    border-radius: 18px; border: 1px solid rgba(128,128,128,0.4);
-    background: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000);
-    font-family: inherit; font-size: 16px;
-  }
-  .round {
-    width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
-    background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff);
-    font-size: 18px; flex-shrink: 0;
-  }
-  .round:disabled { opacity: 0.5; }
-  #attach { background: var(--tg-theme-secondary-bg-color, #f1f1f1); color: var(--tg-theme-text-color, #000000); }
-
-  /* Боковое меню с папками */
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10; }
-  .drawer {
-    position: fixed; top: 0; left: 0; bottom: 0; width: 82%; max-width: 320px;
-    background: var(--tg-theme-bg-color, #ffffff);
-    transform: translateX(-100%); transition: transform 0.2s; z-index: 20;
-    display: flex; flex-direction: column;
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(12px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 2px 0 12px rgba(0,0,0,0.3);
-  }
-  .drawer.open { transform: translateX(0); }
-  #folderList { flex: 1; overflow-y: auto; margin: 12px 0; }
-  .folder { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
-  .folder.active { background: var(--tg-theme-secondary-bg-color, #f1f1f1); }
-  .folder .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .folder .del { background: none; border: none; opacity: 0.55; font-size: 15px; cursor: pointer; color: inherit; padding: 2px 6px; }
-
-  .primary {
-    background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff);
-    border: none; border-radius: 12px; padding: 12px; font-size: 15px; cursor: pointer; width: 100%;
-  }
-  .secondary {
-    background: var(--tg-theme-secondary-bg-color, #f1f1f1); color: var(--tg-theme-text-color, #000000);
-    border: none; border-radius: 12px; padding: 12px; font-size: 15px; cursor: pointer; width: 100%;
-  }
-  .profile-card {
-    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-    background: var(--tg-theme-secondary-bg-color, #f1f1f1); color: inherit;
-    border: none; border-radius: 14px; padding: 10px; cursor: pointer;
-  }
-  .avatar {
-    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
-    background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff);
-    display: flex; align-items: center; justify-content: center; font-weight: 600;
-  }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .avatar.big { width: 84px; height: 84px; font-size: 28px; margin: 0 auto 8px; }
-
-  /* Окна: профиль и переименование */
-  .modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 30;
-    display: flex; align-items: flex-end; justify-content: center;
-  }
-  .sheet {
-    background: var(--tg-theme-bg-color, #ffffff); width: 100%; max-width: 520px;
-    border-radius: 20px 20px 0 0; max-height: 92%; overflow-y: auto;
-    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-  }
-  .sheet h3 { margin: 16px 0 8px; font-size: 16px; }
-  .center { text-align: center; }
-  .style-opt {
-    display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; margin-bottom: 8px;
-    border: 2px solid transparent; cursor: pointer;
-    background: var(--tg-theme-secondary-bg-color, #f1f1f1);
-  }
-  .style-opt.active { border-color: var(--tg-theme-button-color, #2481cc); }
-  .style-opt .emoji { font-size: 24px; }
-  .style-opt .t { font-weight: 600; }
-  #renameInput {
-    width: 100%; padding: 12px; border-radius: 12px; font-size: 16px; margin-bottom: 12px;
-    border: 1px solid rgba(128,128,128,0.4);
-    background: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000);
-  }
-  .row { display: flex; gap: 8px; }
-</style>
 </head>
 <body>
 
-<header>
-  <button class="icon" id="menuBtn">☰</button>
-  <div class="title" id="titleEl">EDU AI</div>
-  <button class="icon" id="renameBtn">✏️</button>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7C6CFF"/><stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+  <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+</svg>
 
-<div id="chat"></div>
-<div id="filebar"><span id="filename"></span> <button id="removeFile">✕</button></div>
-<footer>
-  <button class="round" id="attach" title="Прикрепить файл">📎</button>
-  <textarea id="input" rows="1" placeholder="Напиши вопрос или прикрепи файл..."></textarea>
-  <button class="round" id="send">➤</button>
-  <input type="file" id="fileInput" style="display:none" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,.flac">
-</footer>
+<div id="app">
+  <main id="views">
 
-<div class="overlay hidden" id="overlay"></div>
-<aside class="drawer" id="drawer">
-  <button class="primary" id="newFolderBtn">＋ Новая папка</button>
-  <div id="folderList"></div>
-  <button class="profile-card" id="profileBtn">
-    <div class="avatar" id="avatarSmall"></div>
-    <div>
-      <div id="nameSmall" style="font-weight:600"></div>
-      <div class="muted">Профиль и настройки</div>
-    </div>
-  </button>
-</aside>
+    <section class="view active" id="view-chat">
+      <div class="hdr">
+        <button class="icon-btn" id="menuBtn"><svg class="ic"><use href="#i-menu"/></svg></button>
+        <div class="hdr-text">
+          <div class="hdr-title" id="titleEl">EDU AI</div>
+          <div class="hdr-sub" id="subEl"></div>
+        </div>
+        <button class="icon-btn" id="renameBtn"><svg class="ic"><use href="#i-pencil"/></svg></button>
+      </div>
+      <div id="chat"></div>
+      <div id="filebar">
+        <svg class="ic sm"><use href="#i-clip"/></svg>
+        <span id="filename"></span>
+        <button id="removeFile" class="x-small"><svg class="ic sm"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="composer">
+        <button class="round attach-btn" id="attach"><svg class="ic"><use href="#i-clip"/></svg></button>
+        <textarea class="field" id="input" rows="1" placeholder="Напиши вопрос или прикрепи файл"></textarea>
+        <button class="round send-btn" id="send"><svg class="ic"><use href="#i-up"/></svg></button>
+        <input type="file" id="fileInput" class="hidden" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,.flac">
+      </div>
+    </section>
 
-<div class="modal hidden" id="profileModal">
+    <section class="view" id="view-tests">
+      <div class="page-title">Тесты</div>
+      <div class="page-sub">Проверь, как ты усвоил материал</div>
+      <div class="page" id="testsBody"></div>
+    </section>
+
+    <section class="view" id="view-profile">
+      <div class="page-title">Профиль</div>
+      <div class="page" id="profileBody"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="chat"><span class="ico"><svg class="ic"><use href="#i-chat"/></svg></span><span>Чат</span></button>
+    <button class="tab" data-tab="tests"><span class="ico"><svg class="ic"><use href="#i-list"/></svg></span><span>Тесты</span></button>
+    <button class="tab" data-tab="profile"><span class="ico"><svg class="ic"><use href="#i-user"/></svg></span><span>Профиль</span></button>
+  </nav>
+</div>
+
+<div class="quiz" id="quiz"><div id="quizBody"></div></div>
+
+<div class="sheet-wrap" id="sheet">
+  <div class="sheet-bg" id="sheetBg"></div>
   <div class="sheet">
-    <div class="center">
-      <div class="avatar big" id="avatarBig"></div>
-      <div id="nameBig" style="font-size:20px;font-weight:600"></div>
-      <div id="usernameBig" class="muted"></div>
-    </div>
-    <h3>Как объяснять материал</h3>
-    <div id="styleList"></div>
-    <div id="keyStatus" class="muted" style="margin:12px 0"></div>
-    <button class="primary" id="closeProfile">Готово</button>
+    <div class="grab"></div>
+    <div class="sheet-title" id="sheetTitle"></div>
+    <div id="sheetBody"></div>
   </div>
 </div>
 
-<div class="modal hidden" id="renameModal">
-  <div class="sheet">
-    <h3 style="margin-top:0">Название папки</h3>
-    <input id="renameInput" maxlength="60" placeholder="Например: Экономическая теория">
-    <div class="row">
-      <button class="secondary" id="renameCancel">Отмена</button>
-      <button class="primary" id="renameOk">Сохранить</button>
-    </div>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
-<script>
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-
-// Адрес нашего сервера. Его передаёт бот в ссылке: ?api=...
-const API = (new URLSearchParams(location.search).get("api") || "").replace(/\/$/, "");
-const tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
-
-const STYLES = [
-  { id: "dummy",  emoji: "🧸", title: "Как для чайника", desc: "Самыми простыми словами, с аналогиями из жизни" },
-  { id: "medium", emoji: "🎓", title: "Умеренно",        desc: "Понятно и по делу, с нужными терминами" },
-  { id: "short",  emoji: "⚡", title: "Кратко",          desc: "Только суть, тезисами" },
-  { id: "exam",   emoji: "📝", title: "К экзамену",      desc: "Определения, термины и вопросы для самопроверки" },
-];
-
-const state = { folders: [], currentId: null, style: "medium", hasKey: false, sending: false };
-let pendingFile = null;
-
-const $ = (id) => document.getElementById(id);
-const chat = $("chat"), input = $("input"), sendBtn = $("send"), fileInput = $("fileInput");
-const filebar = $("filebar"), filenameEl = $("filename"), titleEl = $("titleEl");
-const drawer = $("drawer"), overlay = $("overlay"), folderList = $("folderList");
-
-/* ---------- Запросы к серверу ---------- */
-async function api(path, opts = {}) {
-  const r = await fetch(API + path, { ...opts, headers: { "X-Init-Data": tg.initData } });
-  const raw = await r.text();
-  let data = {};
-  try { data = JSON.parse(raw); } catch (e) {}
-  if (!r.ok) throw new Error(data.detail || ("Ошибка " + r.status));
-  return data;
-}
-
-function formOf(obj) {
-  const fd = new FormData();
-  Object.keys(obj).forEach((k) => fd.append(k, obj[k]));
-  return fd;
-}
-
-/* ---------- Сообщения ---------- */
-function render(el, role, text) {
-  if (role === "user") {
-    el.textContent = text;
-  } else {
-    el.innerHTML = DOMPurify.sanitize(marked.parse(text));
-  }
-}
-
-function addMessage(role, text, fileName) {
-  const div = document.createElement("div");
-  div.className = "msg " + (role === "user" ? "user" : "bot");
-  render(div, role, text || "");
-  if (fileName) {
-    const f = document.createElement("div");
-    f.className = "file";
-    f.textContent = "📎 " + fileName;
-    div.prepend(f);
-  }
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-  return div;
-}
-
-function setFile(file) {
-  pendingFile = file;
-  if (file) {
-    filenameEl.textContent = "📎 " + file.name;
-    filebar.style.display = "block";
-  } else {
-    filebar.style.display = "none";
-    fileInput.value = "";
-  }
-}
-
-/* ---------- Профиль ---------- */
-function displayName() {
-  if (!tgUser) return "Гость";
-  return [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || "Без имени";
-}
-
-function setAvatar(el) {
-  el.innerHTML = "";
-  const initials = tgUser
-    ? ((tgUser.first_name || "?")[0] + (tgUser.last_name ? tgUser.last_name[0] : "")).toUpperCase()
-    : "?";
-  if (tgUser && tgUser.photo_url) {
-    const img = document.createElement("img");
-    img.alt = "";
-    img.onerror = () => { el.textContent = initials; };
-    img.src = tgUser.photo_url;
-    el.appendChild(img);
-  } else {
-    el.textContent = initials;
-  }
-}
-
-function renderProfile() {
-  setAvatar($("avatarSmall"));
-  setAvatar($("avatarBig"));
-  $("nameSmall").textContent = displayName();
-  $("nameBig").textContent = displayName();
-  $("usernameBig").textContent = tgUser && tgUser.username ? "@" + tgUser.username : "";
-  $("keyStatus").textContent = state.hasKey
-    ? "Нейросеть подключена ✅"
-    : "Ключ Gemini не подключён. Напиши боту команду /setkey";
-
-  const list = $("styleList");
-  list.innerHTML = "";
-  STYLES.forEach((s) => {
-    const row = document.createElement("div");
-    row.className = "style-opt" + (s.id === state.style ? " active" : "");
-    const emoji = document.createElement("div");
-    emoji.className = "emoji";
-    emoji.textContent = s.emoji;
-    const box = document.createElement("div");
-    const t = document.createElement("div");
-    t.className = "t";
-    t.textContent = s.title;
-    const d = document.createElement("div");
-    d.className = "muted";
-    d.textContent = s.desc;
-    box.append(t, d);
-    row.append(emoji, box);
-    row.addEventListener("click", () => chooseStyle(s.id));
-    list.appendChild(row);
-  });
-}
-
-async function chooseStyle(id) {
-  const previous = state.style;
-  state.style = id;
-  renderProfile();
-  try {
-    await api("/api/settings", { method: "POST", body: formOf({ style: id }) });
-  } catch (e) {
-    state.style = previous;
-    renderProfile();
-    addMessage("model", "⚠️ Не удалось сохранить стиль: " + e.message);
-  }
-}
-
-/* ---------- Папки ---------- */
-function openDrawer() { drawer.classList.add("open"); overlay.classList.remove("hidden"); }
-function closeDrawer() { drawer.classList.remove("open"); overlay.classList.add("hidden"); }
-
-function saveLast(id) { try { localStorage.setItem("lastFolder", String(id)); } catch (e) {} }
-function loadLast() { try { return Number(localStorage.getItem("lastFolder")); } catch (e) { return null; } }
-
-function renderFolders() {
-  folderList.innerHTML = "";
-  state.folders.forEach((f) => {
-    const row = document.createElement("div");
-    row.className = "folder" + (f.id === state.currentId ? " active" : "");
-    const icon = document.createElement("span");
-    icon.textContent = "📁";
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = f.name;
-    const del = document.createElement("button");
-    del.className = "del";
-    del.textContent = "✕";
-    del.addEventListener("click", (ev) => { ev.stopPropagation(); removeFolder(f.id); });
-    row.append(icon, name, del);
-    row.addEventListener("click", () => openFolder(f.id));
-    folderList.appendChild(row);
-  });
-}
-
-async function openFolder(id) {
-  state.currentId = id;
-  saveLast(id);
-  const f = state.folders.find((x) => x.id === id);
-  titleEl.textContent = f ? f.name : "EDU AI";
-  renderFolders();
-  closeDrawer();
-  chat.innerHTML = "";
-  setFile(null);
-  try {
-    const data = await api("/api/history?folder_id=" + id);
-    if (state.currentId !== id) return;
-    if (data.messages.length === 0) {
-      if (!state.hasKey) {
-        addMessage("model", "Сначала подключи нейросеть: напиши боту команду /setkey и пришли свой ключ Gemini.");
-      } else {
-        addMessage("model", "Эта папка пока пустая. Задай вопрос или прикрепи файл (PDF, фото, аудио лекции), и я объясню 🎓");
-      }
-    } else {
-      data.messages.forEach((m) => addMessage(m.role, m.text, m.file_name));
-    }
-  } catch (e) {
-    addMessage("model", "⚠️ " + e.message);
-  }
-}
-
-async function newFolder() {
-  try {
-    const f = await api("/api/folder/new", { method: "POST" });
-    state.folders.unshift({ id: f.id, name: f.name });
-    await openFolder(f.id);
-  } catch (e) {
-    addMessage("model", "⚠️ Не удалось создать папку: " + e.message);
-  }
-}
-
-function confirmDialog(message, onYes) {
-  if (tg.isVersionAtLeast && tg.isVersionAtLeast("6.2") && tg.showConfirm) {
-    tg.showConfirm(message, (ok) => { if (ok) onYes(); });
-  } else if (window.confirm(message)) {
-    onYes();
-  }
-}
-
-function removeFolder(id) {
-  const f = state.folders.find((x) => x.id === id);
-  confirmDialog('Удалить папку "' + (f ? f.name : "") + '" вместе с перепиской?', async () => {
-    try {
-      await api("/api/folder/delete", { method: "POST", body: formOf({ folder_id: id }) });
-      state.folders = state.folders.filter((x) => x.id !== id);
-      if (state.currentId === id) {
-        if (state.folders.length > 0) {
-          await openFolder(state.folders[0].id);
-        } else {
-          await newFolder();
-        }
-      } else {
-        renderFolders();
-      }
-    } catch (e) {
-      addMessage("model", "⚠️ Не удалось удалить папку: " + e.message);
-    }
-  });
-}
-
-function updateFolderName(id, name) {
-  const f = state.folders.find((x) => x.id === id);
-  if (f && name) f.name = name;
-  if (state.currentId === id && name) titleEl.textContent = name;
-}
-
-function moveToTop(id) {
-  const i = state.folders.findIndex((x) => x.id === id);
-  if (i > 0) state.folders.unshift(state.folders.splice(i, 1)[0]);
-  renderFolders();
-}
-
-/* ---------- Переименование ---------- */
-function openRename() {
-  const f = state.folders.find((x) => x.id === state.currentId);
-  $("renameInput").value = f ? f.name : "";
-  $("renameModal").classList.remove("hidden");
-  setTimeout(() => $("renameInput").focus(), 50);
-}
-
-async function saveRename() {
-  const name = $("renameInput").value.trim();
-  if (!name || state.currentId === null) return;
-  try {
-    const data = await api("/api/folder/rename", {
-      method: "POST",
-      body: formOf({ folder_id: state.currentId, name: name }),
-    });
-    updateFolderName(state.currentId, data.name);
-    renderFolders();
-    $("renameModal").classList.add("hidden");
-  } catch (e) {
-    addMessage("model", "⚠️ Не удалось переименовать: " + e.message);
-    $("renameModal").classList.add("hidden");
-  }
-}
-
-/* ---------- Отправка сообщения ---------- */
-async function send() {
-  if (state.sending || state.currentId === null) return;
-  const text = input.value.trim();
-  if (!text && !pendingFile) return;
-
-  const folderId = state.currentId;
-  const fd = formOf({ folder_id: folderId, text: text });
-  if (pendingFile) fd.append("file", pendingFile);
-
-  addMessage("user", text, pendingFile ? pendingFile.name : null);
-  input.value = "";
-  input.style.height = "auto";
-  setFile(null);
-  state.sending = true;
-  sendBtn.disabled = true;
-
-  const thinking = addMessage("model", "Думаю... 🧠");
-  try {
-    const data = await api("/api/chat", { method: "POST", body: fd });
-    render(thinking, "model", data.answer);
-    updateFolderName(folderId, data.folder_name);
-    moveToTop(folderId);
-  } catch (e) {
-    thinking.textContent = "⚠️ " + e.message;
-  }
-  state.sending = false;
-  sendBtn.disabled = false;
-  chat.scrollTop = chat.scrollHeight;
-}
-
-/* ---------- Кнопки ---------- */
-sendBtn.addEventListener("click", send);
-$("attach").addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", () => setFile(fileInput.files[0] || null));
-$("removeFile").addEventListener("click", () => setFile(null));
-input.addEventListener("input", () => {
-  input.style.height = "auto";
-  input.style.height = input.scrollHeight + "px";
-});
-$("menuBtn").addEventListener("click", openDrawer);
-overlay.addEventListener("click", closeDrawer);
-$("newFolderBtn").addEventListener("click", newFolder);
-$("renameBtn").addEventListener("click", openRename);
-$("renameCancel").addEventListener("click", () => $("renameModal").classList.add("hidden"));
-$("renameOk").addEventListener("click", saveRename);
-$("profileBtn").addEventListener("click", () => {
-  renderProfile();
-  closeDrawer();
-  $("profileModal").classList.remove("hidden");
-});
-$("closeProfile").addEventListener("click", () => $("profileModal").classList.add("hidden"));
-
-/* ---------- Запуск ---------- */
-async function init() {
-  renderProfile();
-  if (!API) {
-    addMessage("model", "⚠️ Не указан адрес сервера. Открой приложение через команду /app в боте.");
-    return;
-  }
-  try {
-    const data = await api("/api/bootstrap");
-    state.folders = data.folders;
-    state.style = data.style;
-    state.hasKey = data.has_key;
-    renderProfile();
-    const last = loadLast();
-    const startId = state.folders.some((f) => f.id === last) ? last : state.folders[0].id;
-    await openFolder(startId);
-  } catch (e) {
-    addMessage("model", "⚠️ " + e.message);
-  }
-}
-
-init();
-</script>
+<script src="app.js?v=1"></script>
 </body>
 </html>
