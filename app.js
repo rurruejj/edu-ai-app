@@ -841,4 +841,23 @@ async function init() {
   }
 }
 
-init();
+/* ===== Заставка ===== */
+const SPLASH_MIN_MS = 1500; // сколько миллисекунд заставка показывается минимум
+const splashStart = performance.now();
+
+function hideSplash() {
+  const s = $("splash");
+  if (!s || s.classList.contains("done")) return;
+  s.classList.add("done");
+  $("app").classList.add("enter");
+  haptic.tap();
+  setTimeout(() => s.remove(), 700);
+}
+
+// Страховка: если сервер не ответил, заставка всё равно исчезнет через 8 секунд
+setTimeout(hideSplash, 8000);
+
+init().finally(() => {
+  const wait = Math.max(0, SPLASH_MIN_MS - (performance.now() - splashStart));
+  setTimeout(hideSplash, wait);
+});

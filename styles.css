@@ -223,3 +223,41 @@ body.typing .tabbar { display: none; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
 .pct-badge { min-width: 56px; text-align: center; padding: 6px 10px; border-radius: 12px; border: 2px solid; font-weight: 800; font-size: 14px; background: var(--surface2); }
+
+/* ===== Заставка ===== */
+.splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: opacity .55s ease, transform .55s ease, filter .55s ease; }
+.splash.done { opacity: 0; transform: scale(1.06); filter: blur(6px); pointer-events: none; }
+.blob { position: absolute; width: 320px; height: 320px; border-radius: 50%; filter: blur(70px); opacity: .55; }
+.blob.b1 { background: #7C6CFF; top: -80px; left: -90px; animation: drift1 9s ease-in-out infinite alternate; }
+.blob.b2 { background: #38BDF8; bottom: -100px; right: -80px; animation: drift2 11s ease-in-out infinite alternate; }
+[data-theme="light"] .blob { opacity: .35; }
+.splash-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.logo { position: relative; width: 112px; height: 112px; display: flex; align-items: center; justify-content: center; }
+.logo-glow { position: absolute; inset: -18px; border-radius: 50%; background: radial-gradient(circle, rgba(124,108,255,.45), transparent 65%); animation: breathe 2.4s ease-in-out infinite; }
+.logo-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--accent); border-right-color: #38BDF8; animation: spin 1.6s linear infinite, fadeIn .6s .2s both; }
+.logo-mark { position: relative; width: 84px; height: 84px; border-radius: 26px; background: var(--grad); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 50px rgba(92,108,255,.5); animation: pop .8s cubic-bezier(.2,1.3,.3,1) both, float 3.2s ease-in-out .8s infinite; }
+.logo-mark .ic { width: 40px; height: 40px; animation: twinkle 2.4s ease-in-out .9s infinite; }
+.splash-title { display: flex; font-size: 34px; font-weight: 800; letter-spacing: 2px; }
+.splash-title span { display: inline-block; opacity: 0; transform: translateY(14px); animation: letter .5s cubic-bezier(.2,.9,.3,1) both; animation-delay: calc(.45s + var(--i) * .06s); }
+.splash-title .sp { width: 12px; }
+.splash-sub { color: var(--muted); font-size: 15px; opacity: 0; animation: fadeIn .6s .95s both; }
+.splash-bar { position: absolute; left: 50%; bottom: calc(48px + var(--safe-b)); transform: translateX(-50%); width: 140px; height: 4px; border-radius: 2px; background: var(--surface2); overflow: hidden; }
+.splash-bar i { display: block; height: 100%; width: 100%; border-radius: 2px; background: var(--grad); transform: translateX(-100%); animation: load 1.2s cubic-bezier(.4,0,.2,1) .2s forwards; }
+
+@keyframes drift1 { to { transform: translate(70px, 90px) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-60px, -80px) scale(1.2); } }
+@keyframes pop { from { opacity: 0; transform: scale(.4) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.15) rotate(8deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes breathe { 0%, 100% { opacity: .5; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes letter { to { opacity: 1; transform: none; } }
+@keyframes load { to { transform: translateX(0); } }
+@keyframes appIn { from { opacity: 0; transform: translateY(12px) scale(.99); } to { opacity: 1; transform: none; } }
+#app.enter { animation: appIn .6s cubic-bezier(.2,.8,.2,1) .1s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash * { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .blob { animation: none; }
+}

@@ -4,12 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>EDU AI</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  // Подставляем тему до отрисовки, чтобы не было вспышки
+  try { document.documentElement.dataset.theme = window.Telegram.WebApp.colorScheme === "light" ? "light" : "dark"; } catch (e) {}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
 <body>
+
+<div class="splash" id="splash">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="splash-center">
+    <div class="logo">
+      <div class="logo-glow"></div>
+      <div class="logo-ring"></div>
+      <div class="logo-mark"><svg class="ic"><use href="#i-sparkles"/></svg></div>
+    </div>
+    <div class="splash-title">
+      <span style="--i:0">E</span><span style="--i:1">D</span><span style="--i:2">U</span><span class="sp" style="--i:3">&nbsp;</span><span style="--i:4">A</span><span style="--i:5">I</span>
+    </div>
+    <div class="splash-sub">Учись проще. Запоминай легче.</div>
+  </div>
+  <div class="splash-bar"><i></i></div>
+</div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -99,6 +120,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
