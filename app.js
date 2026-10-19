@@ -694,6 +694,130 @@ try {
   tg.onEvent("themeChanged", applyTheme);
 } catch (e) {}
 
+/* ===== История тестов ===== */
+S.testsView = "subjects";
+S.history = null;
+
+const DIFF_LABEL = { easy: "Лёгкий", medium: "Средний", hard: "Сложный" };
+
+function parseDate(s) { return new Date(String(s).replace(" ", "T") + "Z"); }
+
+function dayLabel(d) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - day) / 86400000);
+  if (diff === 0) return "Сегодня";
+  if (diff === 1) return "Вчера";
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+function pctColor(p) { return p >= 80 ? "var(--ok)" : p >= 50 ? "var(--warn)" : "var(--bad)"; }
+
+async function loadHistory() {
+  const data = await api("/api/quiz/history");
+  S.history = data.attempts;
+}
+
+async function loadTests(silent) {
+  if (!API) return;
+  if (!silent && !S.overview) {
+    $("testsBody").replaceChildren(h("div", { class: "skel" }), h("div", { class: "skel" }), h("div", { class: "skel" }));
+  }
+  try {
+    S.overview = await api("/api/quiz/overview");
+    if (S.testsView === "history") await loadHistory();
+    renderTests();
+    if (S.tab === "profile") renderProfile();
+  } catch (e) {
+    if (!S.overview) $("testsBody").replaceChildren(h("div", { class: "status" }, "Ошибка: " + e.message));
+  }
+}
+
+async function setTestsView(v) {
+  S.testsView = v;
+  haptic.tap();
+  if (v === "history") {
+    try { await loadHistory(); } catch (e) { toast(e.message); }
+  }
+  renderTests();
+}
+
+function renderTests() {
+  const root = $("testsBody");
+  const ov = S.overview;
+  if (!ov) return;
+  const toggle = seg([{ v: "subjects", t: "Предметы" }, { v: "history", t: "История" }], S.testsView, setTestsView);
+  root.replaceChildren(statsNode(ov.stats), toggle);
+  if (S.testsView === "history") { renderHistoryInto(root); return; }
+  root.append(h("div", { class: "section-title" }, "Выбери предмет"));
+  if (!ov.folders.length) root.append(h("div", { class: "status" }, "Папок пока нет. Создай папку в чате и пришли материал."));
+  ov.folders.forEach((f) => root.append(subjectCard(f)));
+}
+
+function renderHistoryInto(root) {
+  const list = S.history || [];
+  if (!list.length) {
+    root.append(h("div", { class: "empty", style: "padding:40px 20px" },
+      h("div", { class: "empty-ic" }, ic("list", "ic lg")),
+      h("div", { class: "empty-title" }, "История пуста"),
+      h("div", { class: "empty-sub" }, "Пройди первый тест, и он появится здесь.")));
+    return;
+  }
+  let lastDay = "";
+  list.forEach((a) => {
+    const d = parseDate(a.created_at);
+    const label = dayLabel(d);
+    if (label !== lastDay) { root.append(h("div", { class: "section-title" }, label)); lastDay = label; }
+    const pct = a.total ? Math.round(a.score / a.total * 100) : 0;
+    const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    root.append(h("button", { class: "subject", onclick: () => openAttempt(a.id) },
+      h("div", { class: "tile", style: "background:" + gradOf(a.folder_id) }, (a.folder_name || "?")[0].toUpperCase()),
+      h("div", { class: "s-info" },
+        h("div", { class: "s-name" }, a.folder_name || "Удалённая папка"),
+        h("div", { class: "s-meta" }, a.score + " из " + a.total + " · " + (DIFF_LABEL[a.difficulty] || "Средний") + " · " + time)),
+      h("div", { class: "pct-badge", style: "color:" + pctColor(pct) + ";border-color:" + pctColor(pct) }, pct + "%")));
+  });
+}
+
+async function openAttempt(id) {
+  const token = ++S.token;
+  showQuiz();
+  $("quizBody").replaceChildren(
+    h("div", { class: "q-top" }, closeBtn(false)),
+    h("div", { class: "center-col" }, h("div", { class: "orb" }), h("div", { class: "load-t" }, "Открываю результат")));
+  try {
+    const d = await api("/api/quiz/attempt?attempt_id=" + id);
+    if (token !== S.token) return;
+    const a = (S.history || []).find((x) => x.id === id);
+    S.quiz = {
+      id: d.quiz_id, folderId: d.folder_id, title: a && a.folder_name ? a.folder_name : "Тест", mode: "train",
+      questions: d.questions, answers: d.answers, i: 0, locked: true, done: true, opts: [], review: true,
+    };
+    renderResults({ attempt_id: d.attempt_id, score: d.score, total: d.total });
+  } catch (e) {
+    if (token !== S.token) return;
+    hideQuiz();
+    toast(e.message);
+  }
+}
+
+// При просмотре старого результата конфетти не показываем
+function confetti() {
+  if (S.quiz && S.quiz.review) return;
+  const box = h("div", { class: "confetti" });
+  const colors = ["#7C6CFF", "#38BDF8", "#34D399", "#FBBF24", "#FB7185"];
+  for (let i = 0; i < 36; i++) {
+    const p = h("i");
+    p.style.left = Math.random() * 100 + "%";
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = Math.random() * 0.4 + "s";
+    p.style.animationDuration = 1.6 + Math.random() * 1.2 + "s";
+    box.append(p);
+  }
+  $("quiz").append(box);
+  setTimeout(() => box.remove(), 3500);
+}
+
 /* ===== Запуск ===== */
 async function init() {
   applyTheme();
